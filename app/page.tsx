@@ -51,6 +51,18 @@ export default function ShieldVault() {
     return () => clearInterval(timer);
   }, []);
 
+  // Accrue funding cost logic
+  useEffect(() => {
+    if (!hedgeActive) return;
+    const ticker = setInterval(() => {
+      setMetrics(prev => ({
+        ...prev,
+        fundingCost: prev.fundingCost + (Math.random() * 0.0003)
+      }));
+    }, 3000);
+    return () => clearInterval(ticker);
+  }, [hedgeActive]);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{
