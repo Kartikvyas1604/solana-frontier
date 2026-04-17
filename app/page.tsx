@@ -1,63 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useShieldVault } from '@/hooks/useShieldVault';
 
 export default function ShieldVault() {
-  const [connected, setConnected] = useState(false);
+  const { connected } = useWallet();
+  const {
+    walletAddress,
+    vaultState,
+    priceData,
+    activeHedge,
+    policy,
+    loading,
+    deposit,
+    withdraw,
+    createPolicy,
+    closeHedge,
+  } = useShieldVault();
+
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [triggerPercent, setTriggerPercent] = useState(5);
   const [hedgePercent, setHedgePercent] = useState(50);
-  const [timeout, setTimeout] = useState('2hr');
+  const [timeout, setTimeout] = useState(120);
+  const [depositAmount, setDepositAmount] = useState('');
 
-  const [metrics, setMetrics] = useState({
-    totalProtected: 0,
-    solPrice: 0,
-    protectionPnL: 0,
-    fundingCost: 0.000142
-  });
+  const totalProtected = vaultState?.solAmount || 0;
+  const solPrice = priceData?.consensusPrice || 0;
+  const hedgeActive = !!activeHedge;
+  const protectionPnL = activeHedge?.realizedPnl || 0;
+  const fundingCost = activeHedge?.fundingPaidTotal || 0;
 
-  const [hedgeActive, setHedgeActive] = useState(true);
+  const triggerPrice = solPrice * (1 - triggerPercent / 100);
+  const hedgeSize = (totalProtected * hedgePercent / 100) * solPrice;
 
-  useEffect(() => {
-    let start = 0;
-    const targetProtected = 47.82;
-    const targetPrice = 180.42;
-    const targetPnL = -0.34;
-    const duration = 400;
-    const steps = 20;
-    const increment = duration / steps;
+  const handleDeposit = async () => {
+    if (!depositAmount || isNaN(Number(depositAmount))) return;
+    try {
+      await deposit(Number(depositAmount));
+      setDepositAmount('');
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
-    const timer = setInterval(() => {
-      start += increment;
-      const progress = Math.min(start / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
+  const handleWithdraw = async () => {
+    if (!vaultState?.shares) return;
+    try {
+      await withdraw(vaultState.shares);
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
-      setMetrics(prev => ({
-        ...prev,
-        totalProtected: targetProtected * easeOut,
-        solPrice: targetPrice * easeOut,
-        protectionPnL: targetPnL * easeOut
-      }));
+  const handleCreatePolicy = async () => {
+    try {
+      await createPolicy({
+        triggerPercent,
+        hedgePercent,
+        timeoutMinutes: timeout,
+      });
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
-      if (progress >= 1) clearInterval(timer);
-    }, increment);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!hedgeActive) return;
-    const ticker = setInterval(() => {
-      setMetrics(prev => ({
-        ...prev,
-        fundingCost: prev.fundingCost + (Math.random() * 0.000003)
-      }));
-    }, 3000);
-    return () => clearInterval(ticker);
-  }, [hedgeActive]);
-
-  const triggerPrice = metrics.solPrice * (1 - triggerPercent / 100);
-  const hedgeSize = (metrics.totalProtected * hedgePercent / 100) * metrics.solPrice;
+  const handleCloseHedge = async () => {
+    try {
+      await closeHedge();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
   return (
     <>
@@ -132,12 +147,27 @@ export default function ShieldVault() {
           transition: all 200ms;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
           transform: translateY(-1px);
         }
 
-        button:active {
+        button:active:not(:disabled) {
           transform: translateY(0);
+        }
+
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .wallet-adapter-button {
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+          border: none !important;
+          border-radius: 10px !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          padding: 16px !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
         }
       `}} />
 
@@ -154,8 +184,8 @@ export default function ShieldVault() {
           <nav style={{ flex: 1, padding: '28px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: '◆' },
+              { id: 'deposit', label: 'Deposit', icon: '↑' },
               { id: 'protection', label: 'Protection', icon: '◈' },
-              { id: 'proof', label: 'Verification', icon: '✓' },
               { id: 'withdraw', label: 'Withdraw', icon: '↓' }
             ].map(item => (
               <button
@@ -183,23 +213,7 @@ export default function ShieldVault() {
           </nav>
 
           <div style={{ padding: '20px', borderTop: '1px solid #27272a' }}>
-            <button
-              onClick={() => setConnected(!connected)}
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: connected ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
-                border: connected ? 'none' : '1px solid #3f3f46',
-                borderRadius: '10px',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: connected ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none'
-              }}
-            >
-              {connected ? '● Connected' : 'Connect Wallet'}
-            </button>
+            <WalletMultiButton style={{ width: '100%' }} />
           </div>
         </aside>
 
@@ -207,12 +221,14 @@ export default function ShieldVault() {
           <div className="fade-in" style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '12px', color: '#fafafa', letterSpacing: '-0.5px' }}>
               {activeScreen === 'dashboard' ? 'Dashboard' :
-               activeScreen === 'protection' ? 'Protection Settings' :
-               activeScreen === 'proof' ? 'Proof Verification' : 'Withdraw'}
+               activeScreen === 'deposit' ? 'Deposit SOL' :
+               activeScreen === 'protection' ? 'Protection Settings' : 'Withdraw'}
             </h2>
-            {connected && (
+            {connected && walletAddress && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <p style={{ fontSize: '14px', color: '#71717a', fontWeight: 500 }}>7xK4...mP9q</p>
+                <p style={{ fontSize: '14px', color: '#71717a', fontWeight: 500 }}>
+                  {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+                </p>
                 <div style={{ width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px rgba(34, 197, 94, 0.6)' }} />
               </div>
             )}
@@ -222,10 +238,10 @@ export default function ShieldVault() {
             <>
               <div className="fade-in delay-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
                 {[
-                  { label: 'Total Protected', value: metrics.totalProtected.toFixed(2), unit: 'SOL', gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' },
-                  { label: 'SOL Price', value: `$${metrics.solPrice.toFixed(2)}`, unit: '', gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' },
-                  { label: 'Status', value: hedgeActive ? 'Active' : 'Inactive', unit: '', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
-                  { label: 'P&L', value: metrics.protectionPnL.toFixed(2), unit: 'SOL', gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }
+                  { label: 'Total Protected', value: totalProtected.toFixed(2), unit: 'SOL', gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' },
+                  { label: 'SOL Price', value: `$${solPrice.toFixed(2)}`, unit: '', gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' },
+                  { label: 'Status', value: hedgeActive ? 'Active' : 'Inactive', unit: '', gradient: hedgeActive ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #52525b 0%, #3f3f46 100%)' },
+                  { label: 'P&L', value: protectionPnL.toFixed(4), unit: 'SOL', gradient: protectionPnL >= 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)' }
                 ].map((m, i) => (
                   <div key={i} className="card" style={{ padding: '28px 24px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: m.gradient }} />
@@ -238,41 +254,61 @@ export default function ShieldVault() {
                 ))}
               </div>
 
-              <div className="fade-in delay-2 card" style={{ padding: '32px', marginBottom: '40px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#fafafa' }}>Active Protection Rule</h3>
-                  <button
-                    onClick={() => setActiveScreen('protection')}
-                    style={{
-                      padding: '10px 20px',
-                      background: '#27272a',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#fafafa',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Edit Rule
-                  </button>
+              {policy && (
+                <div className="fade-in delay-2 card" style={{ padding: '32px', marginBottom: '40px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#fafafa' }}>Active Protection Rule</h3>
+                    <button
+                      onClick={() => setActiveScreen('protection')}
+                      style={{
+                        padding: '10px 20px',
+                        background: '#27272a',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fafafa',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit Rule
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '15px', color: '#a1a1aa', fontWeight: 500, lineHeight: '1.6' }}>
+                    Triggers at <span style={{ color: '#6366f1', fontWeight: 600 }}>-{policy.triggerPercent}%</span> →
+                    <span style={{ color: '#6366f1', fontWeight: 600 }}> {policy.hedgePercent}% hedge</span> →
+                    <span style={{ color: '#71717a' }}> {policy.timeoutMinutes}min timeout</span>
+                  </p>
                 </div>
-                <p style={{ fontSize: '15px', color: '#a1a1aa', fontWeight: 500, lineHeight: '1.6' }}>
-                  Triggers at <span style={{ color: '#6366f1', fontWeight: 600 }}>-5%</span> →
-                  <span style={{ color: '#6366f1', fontWeight: 600 }}> 50% hedge</span> →
-                  <span style={{ color: '#71717a' }}> 2hr timeout</span>
-                </p>
-              </div>
+              )}
 
-              {hedgeActive && (
+              {hedgeActive && activeHedge && (
                 <div className="fade-in delay-3 card" style={{ padding: '32px', marginBottom: '40px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '28px', color: '#fafafa' }}>Active Hedge Monitor</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#fafafa' }}>Active Hedge Monitor</h3>
+                    <button
+                      onClick={handleCloseHedge}
+                      disabled={loading}
+                      style={{
+                        padding: '10px 20px',
+                        background: '#ef4444',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {loading ? 'Closing...' : 'Close Hedge'}
+                    </button>
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '32px' }}>
                     {[
-                      { label: 'Entry Price', value: `$${metrics.solPrice.toFixed(2)}`, color: '#fafafa' },
-                      { label: 'Short Size', value: `$${hedgeSize.toFixed(2)}`, color: '#fafafa' },
-                      { label: 'Funding Cost', value: `${metrics.fundingCost.toFixed(6)} SOL`, color: '#f59e0b' },
-                      { label: 'Liquidation', value: '+42.3%', color: '#22c55e' }
+                      { label: 'Entry Price', value: `$${activeHedge.entryPrice?.toFixed(2) || '0.00'}`, color: '#fafafa' },
+                      { label: 'Short Size', value: `${activeHedge.shortSizeSol?.toFixed(2) || '0.00'} SOL`, color: '#fafafa' },
+                      { label: 'Funding Cost', value: `${fundingCost.toFixed(6)} SOL`, color: '#f59e0b' },
+                      { label: 'Status', value: activeHedge.status || 'OPEN', color: '#22c55e' }
                     ].map((item, i) => (
                       <div key={i}>
                         <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</p>
@@ -282,27 +318,52 @@ export default function ShieldVault() {
                   </div>
                 </div>
               )}
-
-              <div className="fade-in delay-4 card" style={{ padding: '32px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px', color: '#fafafa' }}>Recent Activity</h3>
-                <div>
-                  {[
-                    { event: 'Hedge opened', time: '14:23:41', status: 'success' },
-                    { event: 'Price checked', time: '14:20:15', status: 'neutral' },
-                    { event: 'Proof generated', time: '14:18:02', status: 'success' },
-                    { event: 'Rule updated', time: '13:45:33', status: 'neutral' }
-                  ].map((a, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < 3 ? '1px solid #27272a' : 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: a.status === 'success' ? '#22c55e' : '#52525b', boxShadow: a.status === 'success' ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none' }} />
-                        <span style={{ fontSize: '15px', color: '#fafafa', fontWeight: 500 }}>{a.event}</span>
-                      </div>
-                      <span style={{ fontSize: '14px', color: '#71717a', fontWeight: 500 }}>{a.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </>
+          )}
+
+          {activeScreen === 'deposit' && connected && (
+            <div className="fade-in card" style={{ padding: '48px', maxWidth: '800px' }}>
+              <div style={{ marginBottom: '32px' }}>
+                <label style={{ fontSize: '13px', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '16px' }}>
+                  Amount (SOL)
+                </label>
+                <input
+                  type="number"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="0.00"
+                  style={{
+                    width: '100%',
+                    padding: '20px',
+                    background: '#09090b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    color: '#fafafa',
+                    fontSize: '24px',
+                    fontWeight: 600
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={handleDeposit}
+                disabled={loading || !depositAmount}
+                style={{
+                  width: '100%',
+                  padding: '18px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                }}
+              >
+                {loading ? 'Processing...' : 'Deposit SOL'}
+              </button>
+            </div>
           )}
 
           {activeScreen === 'protection' && connected && (
@@ -326,62 +387,48 @@ export default function ShieldVault() {
               </div>
 
               <div style={{ marginBottom: '40px' }}>
-                <label style={{ fontSize: '13px', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '16px' }}>Timeout Duration</label>
-                <select value={timeout} onChange={(e) => setTimeout(e.target.value)} style={{ width: '100%', padding: '16px', background: '#09090b', border: '1px solid #27272a', borderRadius: '10px', color: '#fafafa', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
-                  <option>30min</option>
-                  <option>1hr</option>
-                  <option>2hr</option>
-                  <option>4hr</option>
-                  <option>never</option>
-                </select>
+                <label style={{ fontSize: '13px', color: '#71717a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '16px' }}>Timeout Duration (minutes)</label>
+                <input
+                  type="number"
+                  value={timeout}
+                  onChange={(e) => setTimeout(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: '#09090b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    color: '#fafafa',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}
+                />
               </div>
 
               <div style={{ background: '#09090b', border: '1px solid #27272a', borderRadius: '10px', padding: '24px', marginBottom: '32px' }}>
                 <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live Preview</p>
                 <p style={{ fontSize: '14px', color: '#a1a1aa', lineHeight: '1.7', fontWeight: 500 }}>
-                  If SOL drops from <span style={{ color: '#6366f1', fontWeight: 600 }}>${metrics.solPrice.toFixed(2)}</span> to <span style={{ color: '#6366f1', fontWeight: 600 }}>${triggerPrice.toFixed(2)}</span>, system opens <span style={{ color: '#6366f1', fontWeight: 600 }}>${hedgeSize.toFixed(2)}</span> short on Drift
+                  If SOL drops from <span style={{ color: '#6366f1', fontWeight: 600 }}>${solPrice.toFixed(2)}</span> to <span style={{ color: '#6366f1', fontWeight: 600 }}>${triggerPrice.toFixed(2)}</span>, system opens <span style={{ color: '#6366f1', fontWeight: 600 }}>${hedgeSize.toFixed(2)}</span> short on Drift
                 </p>
-                <p style={{ fontSize: '13px', color: '#f59e0b', marginTop: '14px', fontWeight: 600 }}>Est. funding cost: ~0.0001 SOL/hr</p>
               </div>
 
-              <button style={{ width: '100%', padding: '18px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', border: 'none', borderRadius: '10px', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}>
-                Activate Protection
-              </button>
-            </div>
-          )}
-
-          {activeScreen === 'proof' && connected && (
-            <div className="fade-in card" style={{ padding: '48px', maxWidth: '800px' }}>
-              <div style={{ marginBottom: '32px' }}>
-                <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '16px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rule Hash</p>
-                <div style={{ padding: '20px', background: '#09090b', border: '1px solid #27272a', borderRadius: '10px', fontSize: '13px', color: '#a1a1aa', wordBreak: 'break-all', fontFamily: 'monospace', fontWeight: 500 }}>
-                  0x7f3a9b2c8e1d4f6a5c9b8e7d3a2f1c4b9e8d7c6a5b4f3e2d1c9b8a7f6e5d4c3b
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '32px' }}>
-                <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '16px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Execution Timestamp</p>
-                <p style={{ fontSize: '16px', color: '#fafafa', fontFamily: 'monospace', fontWeight: 600 }}>2026-04-17 14:23:41 UTC</p>
-              </div>
-
-              <div style={{ marginBottom: '32px' }}>
-                <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '20px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Operator Signatures (2/3)</p>
-                {[
-                  { addr: '9xK...7mP2', signed: true },
-                  { addr: '4bN...3qR8', signed: true },
-                  { addr: '2fM...9sT5', signed: false }
-                ].map((op, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#09090b', border: '1px solid #27272a', borderRadius: '10px', marginBottom: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: op.signed ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                      {op.signed ? '✓' : '○'}
-                    </div>
-                    <span style={{ fontSize: '14px', fontFamily: 'monospace', color: '#a1a1aa', fontWeight: 600 }}>{op.addr}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button style={{ width: '100%', padding: '18px', background: '#27272a', border: 'none', borderRadius: '10px', color: '#fafafa', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-                Verify On-Chain
+              <button
+                onClick={handleCreatePolicy}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '18px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                }}
+              >
+                {loading ? 'Activating...' : 'Activate Protection'}
               </button>
             </div>
           )}
@@ -391,7 +438,7 @@ export default function ShieldVault() {
               <div style={{ marginBottom: '40px' }}>
                 <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '16px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Available Balance</p>
                 <p style={{ fontSize: '48px', fontWeight: 700, color: '#fafafa', lineHeight: '1' }}>
-                  {metrics.totalProtected.toFixed(2)} <span style={{ fontSize: '24px', color: '#71717a', fontWeight: 600 }}>SOL</span>
+                  {totalProtected.toFixed(2)} <span style={{ fontSize: '24px', color: '#71717a', fontWeight: 600 }}>SOL</span>
                 </p>
               </div>
 
@@ -399,13 +446,28 @@ export default function ShieldVault() {
                 <div style={{ padding: '20px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', marginBottom: '32px' }}>
                   <p style={{ fontSize: '14px', color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '18px' }}>⚠</span>
-                    Active hedge will be auto-closed. Estimated cost: 0.003 SOL
+                    Active hedge will be auto-closed before withdrawal
                   </p>
                 </div>
               )}
 
-              <button style={{ width: '100%', padding: '18px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', border: 'none', borderRadius: '10px', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}>
-                Confirm Withdrawal
+              <button
+                onClick={handleWithdraw}
+                disabled={loading || totalProtected === 0}
+                style={{
+                  width: '100%',
+                  padding: '18px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                {loading ? 'Processing...' : 'Confirm Withdrawal'}
               </button>
             </div>
           )}
@@ -414,9 +476,7 @@ export default function ShieldVault() {
             <div className="fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontSize: '18px', color: '#71717a', marginBottom: '32px', fontWeight: 500 }}>Connect your wallet to access ShieldVault</p>
-                <button onClick={() => setConnected(true)} style={{ padding: '18px 48px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', border: 'none', borderRadius: '10px', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}>
-                  Connect Wallet
-                </button>
+                <WalletMultiButton />
               </div>
             </div>
           )}
