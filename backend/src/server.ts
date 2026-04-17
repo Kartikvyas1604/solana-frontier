@@ -9,6 +9,7 @@ import { policyRoutes } from './modules/policy/policy.routes';
 import { hedgeRoutes } from './modules/hedge/hedge.routes';
 import { proofRoutes } from './modules/proof/proof.routes';
 import { priceRoutes } from './modules/price/price.routes';
+import { healthRoutes } from './modules/health/health.routes';
 import { rateLimitConfig } from './middleware/rateLimit.middleware';
 import { prisma } from './db/client';
 
@@ -29,6 +30,7 @@ async function start() {
     await fastify.register(hedgeRoutes);
     await fastify.register(proofRoutes);
     await fastify.register(priceRoutes);
+    await fastify.register(healthRoutes);
 
     fastify.get('/api/audit/:walletAddress', async (request, reply) => {
       const { walletAddress } = request.params as any;
@@ -46,9 +48,6 @@ async function start() {
       }
     });
 
-    fastify.get('/health', async () => {
-      return { status: 'ok', timestamp: new Date().toISOString() };
-    });
 
     fastify.setErrorHandler((error, request, reply) => {
       logger.error({ error, url: request.url }, 'Request error');
