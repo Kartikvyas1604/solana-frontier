@@ -1,49 +1,18 @@
 import {
-  Connection,
   PublicKey,
   SystemProgram,
-  Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
 import { PROGRAM_ID, getVaultPDA, getUserAccountPDA } from "./pda";
-import * as borsh from "borsh";
+import { BN } from "@coral-xyz/anchor";
 
-class InitializeInstruction {
-  instruction = 0;
-  constructor() {}
-}
-
-class DepositInstruction {
-  instruction = 1;
-  amount: bigint;
-  constructor(amount: bigint) {
-    this.amount = amount;
-  }
-}
-
-class WithdrawInstruction {
-  instruction = 2;
-  shares: bigint;
-  constructor(shares: bigint) {
-    this.shares = shares;
-  }
-}
-
-const initializeSchema = new Map([
-  [InitializeInstruction, { kind: "struct", fields: [["instruction", "u8"]] }],
-]);
-
-const depositSchema = new Map([
-  [DepositInstruction, { kind: "struct", fields: [["instruction", "u8"], ["amount", "u64"]] }],
-]);
-
-const withdrawSchema = new Map([
-  [WithdrawInstruction, { kind: "struct", fields: [["instruction", "u8"], ["shares", "u64"]] }],
-]);
+// Anchor discriminators (first 8 bytes of sha256("global:instruction_name"))
+const INITIALIZE_DISCRIMINATOR = Buffer.from([175, 175, 109, 31, 13, 152, 155, 237]);
+const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
+const WITHDRAW_DISCRIMINATOR = Buffer.from([183, 18, 70, 156, 148, 109, 161, 34]);
 
 export function createInitializeInstruction(authority: PublicKey): TransactionInstruction {
   const [vault] = getVaultPDA();
-  const data = borsh.serialize(initializeSchema, new InitializeInstruction());
 
   return new TransactionInstruction({
     keys: [
@@ -52,7 +21,7 @@ export function createInitializeInstruction(authority: PublicKey): TransactionIn
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     programId: PROGRAM_ID,
-    data: Buffer.from(data),
+    data: INITIALIZE_DISCRIMINATOR,
   });
 }
 
@@ -62,7 +31,11 @@ export function createDepositInstruction(
 ): TransactionInstruction {
   const [vault] = getVaultPDA();
   const [userAccount] = getUserAccountPDA(user);
-  const data = borsh.serialize(depositSchema, new DepositInstruction(amount));
+
+  const data = Buffer.alloc(16);
+  DEPOSIT_DISCRIMINATOR.copy(data, 0);
+  const bn = new BN(amount.toString());
+  bn.toArrayLike(Buffer, "le", 8).copy(data, 8);
 
   return new TransactionInstruction({
     keys: [
@@ -72,7 +45,7 @@ export function createDepositInstruction(
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     programId: PROGRAM_ID,
-    data: Buffer.from(data),
+    data,
   });
 }
 
@@ -82,7 +55,11 @@ export function createWithdrawInstruction(
 ): TransactionInstruction {
   const [vault] = getVaultPDA();
   const [userAccount] = getUserAccountPDA(user);
-  const data = borsh.serialize(withdrawSchema, new WithdrawInstruction(shares));
+
+  const data = Buffer.alloc(16);
+  WITHDRAW_DISCRIMINATOR.copy(data, 0);
+  const bn = new BN(shares.toString());
+  bn.toArrayLike(Buffer, "le", 8).copy(data, 8);
 
   return new TransactionInstruction({
     keys: [
@@ -92,6 +69,6 @@ export function createWithdrawInstruction(
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     programId: PROGRAM_ID,
-    data: Buffer.from(data),
+    data,
   });
 }

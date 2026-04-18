@@ -16,6 +16,60 @@ h1, h2, h3 {
   letter-spacing: -0.02em;
 }
 
+/* Override wallet adapter styles */
+.wallet-adapter-button {
+  background: #111 !important;
+  border: 1px solid #2C2C2C !important;
+  border-radius: 4px !important;
+  color: #E5E5E5 !important;
+  font-family: ui-monospace, 'SF Mono', Monaco, monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.15s !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background: #1A1A1A !important;
+  border-color: #00D4FF !important;
+  color: #00D4FF !important;
+}
+
+.wallet-adapter-button-trigger {
+  background: #111 !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: rgba(10, 10, 11, 0.95) !important;
+}
+
+.wallet-adapter-modal {
+  background: #111 !important;
+  border: 1px solid #2C2C2C !important;
+  border-radius: 4px !important;
+}
+
+.wallet-adapter-modal-title {
+  color: #E5E5E5 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif !important;
+}
+
+.wallet-adapter-modal-list {
+  background: #0A0A0B !important;
+}
+
+.wallet-adapter-modal-list-item {
+  background: #111 !important;
+  border: 1px solid #1F1F1F !important;
+  border-radius: 4px !important;
+}
+
+.wallet-adapter-modal-list-item:hover {
+  border-color: #00D4FF !important;
+}
+
 .grid-overlay {
   background-image:
     linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
