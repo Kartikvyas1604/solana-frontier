@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";
-import { createDepositInstruction } from "@solana-frontier/sdk";
+import { createDepositInstruction, createInitializeInstruction, checkVaultInitialized } from "@solana-frontier/sdk";
 
 interface DepositFormProps {
   onSuccess?: () => void;
@@ -12,13 +12,24 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
   const { publicKey, sendTransaction } = useWallet();
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleDeposit = async () => {
     if (!publicKey) return;
 
     setLoading(true);
+    setError("");
     try {
-      const lamports = BigInt(parseFloat(amount) * 1e9);
+      const isInitialized = await checkVaultInitialized(connection);
+
+      if (!isInitialized) {
+        const initIx = createInitializeInstruction(publicKey);
+        const initTx = new Transaction().add(initIx);
+        await sendTransaction(initTx, connection);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      const lamports = BigInt(Math.floor(parseFloat(amount) * 1e9));
       const instruction = createDepositInstruction(publicKey, lamports);
       const transaction = new Transaction().add(instruction);
 
@@ -27,8 +38,14 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
 
       onSuccess?.();
       setAmount("");
-    } catch (error) {
-      console.error("Deposit failed:", error);
+    } catch (err: any) {
+      console.error("Deposit failed:", err);
+      const msg = err?.message || "Transaction failed";
+      if (msg.includes("AccountNotFound") || msg.includes("could not find account")) {
+        setError("Program not deployed. Run: npm run program:build && npm run program:deploy");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,8 +59,11 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
         onChange={(e) => setAmount(e.target.value)}
         placeholder="Amount (SOL)"
         disabled={loading}
+        step="0.01"
+        min="0"
       />
-      <button onClick={handleDeposit} disabled={!publicKey || loading}>
+      {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+      <button onClick={handleDeposit} disabled={!publicKey || loading || !amount}>
         {loading ? "Processing..." : "Deposit"}
       </button>
     </div>
