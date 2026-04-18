@@ -62,7 +62,7 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
         step="0.01"
         min="0"
       />
-      {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+      {error && <p className="error-text">{error}</p>}
       <button onClick={handleDeposit} disabled={!publicKey || loading || !amount}>
         {loading ? "Processing..." : "Deposit"}
       </button>
