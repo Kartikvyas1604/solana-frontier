@@ -3,6 +3,7 @@ import { Geist_Mono } from 'next/font/google';
 import { WalletContextProvider } from '@/providers/WalletProvider';
 import { Header } from '@/components/layout/Header';
 import './globals.css';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 const geistMono = Geist_Mono({
   subsets: ['latin'],
