@@ -44,15 +44,15 @@ export default function VaultPage() {
               <div className="grid grid-cols-2 gap-4">
                 <MetricCard
                   label="Your Shares"
-                  value="1,247.89"
+                  value="0.00"
                   status="neutral"
                   size="lg"
                 />
                 <MetricCard
                   label="Share Value"
-                  value={formatCurrency(1247893.45)}
-                  change={-3.21}
-                  status="negative"
+                  value={formatCurrency(0)}
+                  change={0}
+                  status="neutral"
                   size="lg"
                 />
               </div>
@@ -61,19 +61,19 @@ export default function VaultPage() {
                 <div className="grid grid-cols-2 gap-4 text-xs font-mono">
                   <div>
                     <div className="text-[#666666] uppercase tracking-wider mb-1">Deposited</div>
-                    <div className="text-white">{formatCurrency(1200000)}</div>
+                    <div className="text-white">{formatCurrency(0)}</div>
                   </div>
                   <div>
                     <div className="text-[#666666] uppercase tracking-wider mb-1">Current Value</div>
-                    <div className="text-white">{formatCurrency(1247893.45)}</div>
+                    <div className="text-white">{formatCurrency(0)}</div>
                   </div>
                   <div>
                     <div className="text-[#666666] uppercase tracking-wider mb-1">Total P&L</div>
-                    <div className="text-[#00FF88]">+{formatCurrency(47893.45)}</div>
+                    <div className="text-[#666666]">{formatCurrency(0)}</div>
                   </div>
                   <div>
                     <div className="text-[#666666] uppercase tracking-wider mb-1">P&L %</div>
-                    <div className="text-[#00FF88]">+3.99%</div>
+                    <div className="text-[#666666]">0.00%</div>
                   </div>
                 </div>
               </div>

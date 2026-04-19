@@ -15,58 +15,18 @@ interface Transaction {
   txHash: string;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'deposit',
-    amount: 500000,
-    timestamp: Date.now() - 86400000 * 7,
-    txHash: '5Kq7x...',
-  },
-  {
-    id: '2',
-    type: 'hedge_open',
-    amount: 250000,
-    timestamp: Date.now() - 86400000 * 5,
-    txHash: '8Ry2m...',
-  },
-  {
-    id: '3',
-    type: 'deposit',
-    amount: 700000,
-    timestamp: Date.now() - 86400000 * 3,
-    txHash: '3Wp9k...',
-  },
-  {
-    id: '4',
-    type: 'rebalance',
-    amount: 0,
-    timestamp: Date.now() - 86400000 * 2,
-    txHash: '7Hn4j...',
-  },
-  {
-    id: '5',
-    type: 'hedge_close',
-    amount: 250000,
-    timestamp: Date.now() - 86400000,
-    txHash: '2Qm8p...',
-  },
-];
-
-export default function ProfilePage() {
-  const { connected, publicKey } = useWallet();
-  const { stats } = useVaultData();
+  const [transactions] = useState<Transaction[]>([]);
 
   if (!connected) {
     return <div className="terminal-grid" />;
   }
 
-  const totalDeposited = 1200000;
+  const totalDeposited = 0;
   const totalWithdrawn = 0;
   const netDeposits = totalDeposited - totalWithdrawn;
-  const currentValue = 1247893.45;
+  const currentValue = 0;
   const totalPnL = currentValue - netDeposits;
-  const pnlPercent = (totalPnL / netDeposits) * 100;
+  const pnlPercent = netDeposits > 0 ? (totalPnL / netDeposits) * 100 : 0;
 
   const getTransactionLabel = (type: string) => {
     const labels = {
@@ -139,7 +99,7 @@ export default function ProfilePage() {
                 Total Transactions
               </div>
               <div className="text-sm font-mono text-white">
-                {mockTransactions.length}
+                {transactions.length}
               </div>
             </div>
           </div>
@@ -168,7 +128,7 @@ export default function ProfilePage() {
         />
         <MetricCard
           label="Vault Shares"
-          value="1,247.89"
+          value="0.00"
           status="neutral"
           size="lg"
         />
@@ -295,7 +255,17 @@ export default function ProfilePage() {
               </tr>
             </thead>
             <tbody>
-              {mockTransactions.map((tx, index) => (
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center">
+                    <div className="text-[#666666] font-mono text-sm mb-2">No transactions yet</div>
+                    <div className="text-[#666666] font-mono text-xs">
+                      Your transaction history will appear here
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((tx, index) => (
                 <motion.tr
                   key={tx.id}
                   initial={{ opacity: 0, x: -10 }}
@@ -318,7 +288,8 @@ export default function ProfilePage() {
                     {formatTimestamp(tx.timestamp)}
                   </td>
                 </motion.tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

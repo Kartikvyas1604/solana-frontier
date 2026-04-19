@@ -15,10 +15,10 @@ export default function AnalyticsPage() {
   }
 
   const performanceData = [
-    { period: '24H', value: 2.34, pnl: 29234.56 },
-    { period: '7D', value: 8.12, pnl: 101456.78 },
-    { period: '30D', value: 15.67, pnl: 195678.90 },
-    { period: 'ALL', value: 23.45, pnl: 292345.67 },
+    { period: '24H', value: 0, pnl: 0 },
+    { period: '7D', value: 0, pnl: 0 },
+    { period: '30D', value: 0, pnl: 0 },
+    { period: 'ALL', value: 0, pnl: 0 },
   ];
 
   return (
