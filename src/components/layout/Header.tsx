@@ -12,9 +12,12 @@ export function Header() {
 
   const navItems = [
     { label: 'Dashboard', href: '/' },
+    { label: 'Vault', href: '/vault' },
     { label: 'Positions', href: '/positions' },
     { label: 'Strategies', href: '/strategies' },
     { label: 'Proofs', href: '/proofs' },
+    { label: 'Analytics', href: '/analytics' },
+    { label: 'Settings', href: '/settings' },
   ];
 
   return (
