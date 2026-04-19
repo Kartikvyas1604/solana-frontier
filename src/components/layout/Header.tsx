@@ -17,27 +17,34 @@ export function Header() {
   }, []);
 
   const navItems = [
-    { label: 'Dashboard', href: '/' },
+    { label: 'Dashboard', href: '/dashboard' },
     { label: 'Vault', href: '/vault' },
     { label: 'Signals', href: '/signals' },
     { label: 'Strategies', href: '/strategies' },
     { label: 'Execution', href: '/execution' },
     { label: 'Proofs', href: '/proofs' },
     { label: 'Analytics', href: '/analytics' },
+    { label: 'Profile', href: '/profile' },
   ];
+
+  if (pathname === '/') {
+    return null;
+  }
 
   return (
     <header className="border-b border-[#1F1F1F] bg-[#0A0A0B] sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
       <div className="max-w-[1600px] mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={connected ? "/dashboard" : "/"} className="flex items-center gap-2">
               <div className="w-6 h-6 border border-[#00D4FF] flex items-center justify-center">
                 <div className="w-3 h-3 bg-[#00D4FF]" />
               </div>
-              <span className="text-base font-mono font-bold text-white tracking-tight">
-                CIPHER<span className="text-[#00D4FF]">YIELD</span>
-              </span>
+              {!connected && (
+                <span className="text-base font-mono font-bold text-white tracking-tight">
+                  CIPHER<span className="text-[#00D4FF]">YIELD</span>
+                </span>
+              )}
             </Link>
 
             {connected && (
