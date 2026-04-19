@@ -3,92 +3,13 @@
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion } from 'framer-motion';
 import { MetricCard } from '@/components/ui/MetricCard';
-import { useState, useEffect } from 'react';
-
-interface MarketSignal {
-  id: string;
-  source: string;
-  type: 'price' | 'prediction' | 'composite';
-  value: number;
-  confidence: number;
-  timestamp: number;
-  status: 'active' | 'filtered' | 'stale';
-}
-
-interface RiskScore {
-  overall: number;
-  priceRisk: number;
-  predictionRisk: number;
-  volatilityRisk: number;
-  liquidityRisk: number;
-}
+import { useMarketData } from '@/lib/hooks/useMarketData';
+import { useRiskScore } from '@/lib/hooks/useRiskScore';
 
 export default function SignalsPage() {
   const { connected } = useWallet();
-  const [signals, setSignals] = useState<MarketSignal[]>([]);
-  const [riskScore, setRiskScore] = useState<RiskScore>({
-    overall: 42.3,
-    priceRisk: 38.5,
-    predictionRisk: 45.2,
-    volatilityRisk: 51.8,
-    liquidityRisk: 33.7,
-  });
-
-  useEffect(() => {
-    if (!connected) return;
-
-    const mockSignals: MarketSignal[] = [
-      {
-        id: '1',
-        source: 'Pyth Oracle',
-        type: 'price',
-        value: 152.34,
-        confidence: 98.5,
-        timestamp: Date.now(),
-        status: 'active',
-      },
-      {
-        id: '2',
-        source: 'Jupiter TWAP',
-        type: 'price',
-        value: 152.28,
-        confidence: 96.2,
-        timestamp: Date.now() - 5000,
-        status: 'active',
-      },
-      {
-        id: '3',
-        source: 'Prediction Market',
-        type: 'prediction',
-        value: 67.8,
-        confidence: 89.3,
-        timestamp: Date.now() - 10000,
-        status: 'active',
-      },
-      {
-        id: '4',
-        source: 'Composite Risk',
-        type: 'composite',
-        value: 42.3,
-        confidence: 94.7,
-        timestamp: Date.now(),
-        status: 'active',
-      },
-    ];
-
-    setSignals(mockSignals);
-
-    const interval = setInterval(() => {
-      setRiskScore((prev) => ({
-        ...prev,
-        overall: Math.max(0, Math.min(100, prev.overall + (Math.random() - 0.5) * 5)),
-        priceRisk: Math.max(0, Math.min(100, prev.priceRisk + (Math.random() - 0.5) * 3)),
-        predictionRisk: Math.max(0, Math.min(100, prev.predictionRisk + (Math.random() - 0.5) * 4)),
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [connected]);
+  const { pythPrice, jupiterPrice, loading: marketLoading, error: marketError } = useMarketData();
+  const { riskScore, loading: riskLoading } = useRiskScore();
 
   if (!connected) {
     return <div className="terminal-grid" />;
@@ -118,10 +39,18 @@ export default function SignalsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111111] border border-[#1F1F1F]">
-          <div className="w-2 h-2 rounded-full bg-[#00FF88] status-pulse" />
-          <span className="text-xs font-mono text-[#00FF88]">PROCESSING</span>
+          <div className={`w-2 h-2 rounded-full ${marketLoading || riskLoading ? 'bg-[#00D4FF]' : 'bg-[#00FF88]'} status-pulse`} />
+          <span className={`text-xs font-mono ${marketLoading || riskLoading ? 'text-[#00D4FF]' : 'text-[#00FF88]'}`}>
+            {marketLoading || riskLoading ? 'LOADING' : 'PROCESSING'}
+          </span>
         </div>
       </div>
+
+      {marketError && (
+        <div className="bg-[#FF0055]/10 border border-[#FF0055] p-4">
+          <div className="text-xs font-mono text-[#FF0055]">Error: {marketError}</div>
+        </div>
+      )}
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -170,46 +99,73 @@ export default function SignalsPage() {
           </div>
           <div className="p-6">
             <div className="space-y-3">
-              {signals.map((signal) => (
-                <div
-                  key={signal.id}
-                  className="bg-[#111111] border border-[#1F1F1F] p-4 hover:border-[#00D4FF] transition-colors"
-                >
+              {pythPrice && (
+                <div className="bg-[#111111] border border-[#1F1F1F] p-4 hover:border-[#00D4FF] transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          signal.status === 'active' ? 'bg-[#00FF88]' : 'bg-[#666666]'
-                        }`}
-                      />
+                      <div className="w-2 h-2 rounded-full bg-[#00FF88]" />
                       <span className="text-xs font-mono text-white font-semibold">
-                        {signal.source}
+                        Pyth Oracle
                       </span>
                     </div>
-                    <span className="text-xs font-mono text-[#666666] uppercase">
-                      {signal.type}
-                    </span>
+                    <span className="text-xs font-mono text-[#666666] uppercase">price</span>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-xs font-mono">
                     <div>
                       <div className="text-[#666666] mb-1">Value</div>
-                      <div className="text-white font-semibold">
-                        {signal.type === 'price' ? `$${signal.value.toFixed(2)}` : `${signal.value.toFixed(1)}%`}
-                      </div>
+                      <div className="text-white font-semibold">${pythPrice.price.toFixed(2)}</div>
                     </div>
                     <div>
                       <div className="text-[#666666] mb-1">Confidence</div>
-                      <div className="text-[#00D4FF] font-semibold">{signal.confidence.toFixed(1)}%</div>
+                      <div className="text-[#00D4FF] font-semibold">
+                        ±${pythPrice.confidence.toFixed(2)}
+                      </div>
                     </div>
                     <div>
                       <div className="text-[#666666] mb-1">Age</div>
                       <div className="text-white">
-                        {Math.floor((Date.now() - signal.timestamp) / 1000)}s
+                        {Math.floor((Date.now() - pythPrice.timestamp) / 1000)}s
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {jupiterPrice && (
+                <div className="bg-[#111111] border border-[#1F1F1F] p-4 hover:border-[#00D4FF] transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-[#00FF88]" />
+                      <span className="text-xs font-mono text-white font-semibold">
+                        Jupiter Price
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono text-[#666666] uppercase">price</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-xs font-mono">
+                    <div>
+                      <div className="text-[#666666] mb-1">Value</div>
+                      <div className="text-white font-semibold">${jupiterPrice.price.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[#666666] mb-1">Source</div>
+                      <div className="text-[#00D4FF] font-semibold">Aggregated</div>
+                    </div>
+                    <div>
+                      <div className="text-[#666666] mb-1">Age</div>
+                      <div className="text-white">
+                        {Math.floor((Date.now() - jupiterPrice.timestamp) / 1000)}s
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!pythPrice && !jupiterPrice && !marketLoading && (
+                <div className="text-center py-8">
+                  <div className="text-xs font-mono text-[#666666]">No signals available</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -225,22 +181,20 @@ export default function SignalsPage() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-mono text-white font-semibold">Market Data</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#00FF88]" />
-                  <span className="text-xs font-mono text-[#00FF88]">LIVE</span>
+                  <div className={`w-2 h-2 rounded-full ${pythPrice ? 'bg-[#00FF88]' : 'bg-[#666666]'}`} />
+                  <span className={`text-xs font-mono ${pythPrice ? 'text-[#00FF88]' : 'text-[#666666]'}`}>
+                    {pythPrice ? 'LIVE' : 'OFFLINE'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2 text-xs font-mono text-[#666666]">
                 <div className="flex justify-between">
                   <span>Pyth Oracle</span>
-                  <span className="text-white">Connected</span>
+                  <span className="text-white">{pythPrice ? 'Connected' : 'Disconnected'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Jupiter Aggregator</span>
-                  <span className="text-white">Connected</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Switchboard</span>
-                  <span className="text-white">Connected</span>
+                  <span className="text-white">{jupiterPrice ? 'Connected' : 'Disconnected'}</span>
                 </div>
               </div>
             </div>
@@ -249,22 +203,14 @@ export default function SignalsPage() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-mono text-white font-semibold">Prediction Markets</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#00FF88]" />
-                  <span className="text-xs font-mono text-[#00FF88]">LIVE</span>
+                  <div className="w-2 h-2 rounded-full bg-[#666666]" />
+                  <span className="text-xs font-mono text-[#666666]">OFFLINE</span>
                 </div>
               </div>
               <div className="space-y-2 text-xs font-mono text-[#666666]">
                 <div className="flex justify-between">
                   <span>Event Feed</span>
-                  <span className="text-white">Active</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Probability Stream</span>
-                  <span className="text-white">Active</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Historical Data</span>
-                  <span className="text-white">Synced</span>
+                  <span className="text-white">Not configured</span>
                 </div>
               </div>
             </div>
@@ -273,20 +219,12 @@ export default function SignalsPage() {
               <div className="text-xs font-mono text-white font-semibold mb-3">Signal Filters</div>
               <div className="space-y-2 text-xs font-mono">
                 <div className="flex justify-between">
-                  <span className="text-[#666666]">Liquidity Threshold</span>
-                  <span className="text-[#00D4FF]">$100K</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-[#666666]">Confidence Min</span>
                   <span className="text-[#00D4FF]">85%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#666666]">Max Age</span>
                   <span className="text-[#00D4FF]">30s</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#666666]">Smoothing</span>
-                  <span className="text-[#00D4FF]">EMA-10</span>
                 </div>
               </div>
             </div>
@@ -302,25 +240,25 @@ export default function SignalsPage() {
           <div className="bg-[#111111] border border-[#1F1F1F] p-4">
             <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">1. Ingestion</div>
             <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
-              Real-time data from Pyth, Jupiter, and prediction markets with timestamp verification
+              Real-time data from Pyth and Jupiter with timestamp verification
             </div>
           </div>
           <div className="bg-[#111111] border border-[#1F1F1F] p-4">
             <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">2. Normalization</div>
             <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
-              Unified schema conversion with confidence scoring and quality metrics
+              Unified schema conversion with confidence scoring
             </div>
           </div>
           <div className="bg-[#111111] border border-[#1F1F1F] p-4">
             <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">3. Filtering</div>
             <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
-              Discard low-quality signals based on liquidity, volatility, and temporal checks
+              Discard low-quality signals based on confidence and age
             </div>
           </div>
           <div className="bg-[#111111] border border-[#1F1F1F] p-4">
             <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">4. Risk Scoring</div>
             <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
-              Composite risk calculation combining price, prediction, and volatility metrics
+              Composite risk calculation from price and volatility metrics
             </div>
           </div>
         </div>

@@ -2,14 +2,10 @@
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion } from 'framer-motion';
-import { formatTimestamp } from '@/lib/utils';
-import { Button } from '@/components/ui/Button';
-import type { ProofBundle } from '@/lib/types';
-import { useState } from 'react';
+import { MetricCard } from '@/components/ui/MetricCard';
 
 export default function ProofsPage() {
   const { connected } = useWallet();
-  const [proofs] = useState<ProofBundle[]>([]);
 
   if (!connected) {
     return <div className="terminal-grid" />;
@@ -17,136 +13,172 @@ export default function ProofsPage() {
 
   return (
     <div className="content-layer space-y-6">
-      <div>
-        <h1 className="text-sm font-mono font-semibold text-white uppercase tracking-wider mb-1">
-          Proof Verification
-        </h1>
-        <p className="text-xs font-mono text-[#666666]">
-          Cryptographic proof bundles for all vault executions
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-sm font-mono font-semibold text-white uppercase tracking-wider mb-1">
+            Verification Layer
+          </h1>
+          <p className="text-xs font-mono text-[#666666]">
+            Cryptographic proof bundles for verifiable execution
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111111] border border-[#1F1F1F]">
+          <div className="w-2 h-2 rounded-full bg-[#666666]" />
+          <span className="text-xs font-mono text-[#666666]">NO PROOFS</span>
+        </div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
+        <MetricCard label="Total Proofs" value="0" status="neutral" size="lg" />
+        <MetricCard label="Verified" value="0" status="neutral" size="lg" />
+        <MetricCard label="On-Chain" value="0" status="neutral" size="lg" />
+        <MetricCard label="Arweave Stored" value="0" status="neutral" size="lg" />
+      </motion.div>
 
       <div className="bg-[#0A0A0B] border border-[#1F1F1F]">
         <div className="border-b border-[#1F1F1F] px-6 py-4">
-          <div className="flex items-center justify-between">
+          <h2 className="text-sm font-mono font-semibold text-white uppercase tracking-wider">
+            Execution Proofs
+          </h2>
+        </div>
+        <div className="p-12 text-center">
+          <div className="text-[#666666] font-mono text-sm mb-2">No proofs available</div>
+          <div className="text-[#666666] font-mono text-xs">
+            Proof bundles will appear here after vault executions
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[#0A0A0B] border border-[#1F1F1F]">
+          <div className="border-b border-[#1F1F1F] px-6 py-4">
             <h2 className="text-sm font-mono font-semibold text-white uppercase tracking-wider">
-              Execution Proofs
+              Verification Process
             </h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-white font-semibold mb-3">
+                Privacy Model
+              </div>
+              <div className="space-y-2 text-xs font-mono text-[#A0A0A0]">
+                <div className="flex items-start gap-2">
+                  <span className="text-[#00FF88]">✓</span>
+                  <span>Strategy logic remains encrypted</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[#00FF88]">✓</span>
+                  <span>Execution correctness is verifiable</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[#00FF88]">✓</span>
+                  <span>No strategy details leaked</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-white font-semibold mb-3">
+                Storage Architecture
+              </div>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">On-Chain</span>
+                  <span className="text-white">Proof Hash</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Arweave</span>
+                  <span className="text-white">Full Bundle</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Retention</span>
+                  <span className="text-white">Permanent</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {proofs.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="text-[#666666] font-mono text-sm mb-2">No proofs available</div>
-            <div className="text-[#666666] font-mono text-xs">
-              Proof bundles will appear here after vault executions
+        <div className="bg-[#0A0A0B] border border-[#1F1F1F]">
+          <div className="border-b border-[#1F1F1F] px-6 py-4">
+            <h2 className="text-sm font-mono font-semibold text-white uppercase tracking-wider">
+              Proof Components
+            </h2>
+          </div>
+          <div className="p-6 space-y-3">
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-[#00D4FF] font-semibold mb-2">
+                Price Data Hash
+              </div>
+              <div className="text-xs font-mono text-[#A0A0A0]">
+                Hashed oracle feeds with timestamps
+              </div>
+            </div>
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-[#00D4FF] font-semibold mb-2">
+                Signal Data Hash
+              </div>
+              <div className="text-xs font-mono text-[#A0A0A0]">
+                Hashed prediction market signals
+              </div>
+            </div>
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-[#00D4FF] font-semibold mb-2">
+                Strategy Commitment
+              </div>
+              <div className="text-xs font-mono text-[#A0A0A0]">
+                Hash commitment (no logic exposed)
+              </div>
+            </div>
+            <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+              <div className="text-xs font-mono text-[#00D4FF] font-semibold mb-2">
+                Operator Signatures
+              </div>
+              <div className="text-xs font-mono text-[#A0A0A0]">
+                2-of-3 threshold validation
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="divide-y divide-[#1F1F1F]">
-            {proofs.map((proof, index) => (
-              <motion.div
-                key={proof.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-6 hover:bg-[#111111] transition-colors"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-mono text-white font-semibold">
-                        {proof.action}
-                      </span>
-                      {proof.verified && (
-                        <span className="px-2 py-1 text-xs font-mono bg-[#00FF88]/10 text-[#00FF88]">
-                          VERIFIED
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs font-mono text-[#666666]">
-                      {formatTimestamp(proof.timestamp)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-xs font-mono text-[#666666] uppercase tracking-wider mb-1">
-                      Price Data Hash
-                    </div>
-                    <div className="text-xs font-mono text-[#00D4FF] break-all">
-                      {proof.priceData}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-mono text-[#666666] uppercase tracking-wider mb-1">
-                      Execution Route
-                    </div>
-                    <div className="text-xs font-mono text-white">
-                      {proof.executionRoute}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="text-xs font-mono text-[#666666] uppercase tracking-wider mb-2">
-                    Operator Signatures ({proof.operatorSignatures.length}/3)
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {proof.operatorSignatures.map((sig, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-1 text-xs font-mono bg-[#111111] border border-[#1F1F1F] text-[#A0A0A0]"
-                      >
-                        {sig}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {proof.arweaveUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(proof.arweaveUrl, '_blank')}
-                  >
-                    View Full Proof on Arweave →
-                  </Button>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
 
       <div className="bg-[#0A0A0B] border border-[#1F1F1F] p-6">
         <h3 className="text-sm font-mono font-semibold text-white uppercase tracking-wider mb-4">
-          Proof Bundle Structure
+          Proof Bundle Components
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-mono">
-          <div>
-            <div className="text-[#00D4FF] mb-2 font-semibold">Price Data</div>
-            <div className="text-[#A0A0A0] leading-relaxed">
-              Signed price feeds from Jupiter and Pyth oracles with timestamps
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+            <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">Price Data</div>
+            <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
+              Hashed oracle feeds with timestamps
             </div>
           </div>
-          <div>
-            <div className="text-[#00D4FF] mb-2 font-semibold">Execution Path</div>
-            <div className="text-[#A0A0A0] leading-relaxed">
-              Complete routing information and transaction hashes
+          <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+            <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">Signal Data</div>
+            <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
+              Hashed prediction market signals
             </div>
           </div>
-          <div>
-            <div className="text-[#00D4FF] mb-2 font-semibold">Operator Validation</div>
-            <div className="text-[#A0A0A0] leading-relaxed">
-              2-of-3 threshold signatures from distributed operator network
+          <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+            <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">Strategy</div>
+            <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
+              Commitment hash (no logic exposed)
             </div>
           </div>
-          <div>
-            <div className="text-[#00D4FF] mb-2 font-semibold">Storage</div>
-            <div className="text-[#A0A0A0] leading-relaxed">
-              On-chain hash commitment with full data on Arweave
+          <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+            <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">Execution</div>
+            <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
+              Route details and transaction hash
+            </div>
+          </div>
+          <div className="bg-[#111111] border border-[#1F1F1F] p-4">
+            <div className="text-[#00D4FF] text-xs font-mono font-semibold mb-2">Signatures</div>
+            <div className="text-xs font-mono text-[#A0A0A0] leading-relaxed">
+              Operator validation (2-of-3 threshold)
             </div>
           </div>
         </div>
