@@ -66,7 +66,6 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
         VaultError::InvalidShares
     );
 
-    // Calculate USDC amount to return
     let amount_to_return = vault.amount_for_shares(shares)?;
 
     require!(
@@ -74,7 +73,6 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
         VaultError::InsufficientFunds
     );
 
-    // Burn shares from user
     let burn_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Burn {
@@ -85,7 +83,6 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
     );
     token::burn(burn_ctx, shares)?;
 
-    // Transfer USDC from vault to user
     let vault_seeds = &[b"vault".as_ref(), &[vault.bump]];
     let signer_seeds = &[&vault_seeds[..]];
 
@@ -100,7 +97,6 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
     );
     token::transfer(transfer_ctx, amount_to_return)?;
 
-    // Update vault state
     vault.total_assets = vault.total_assets.checked_sub(amount_to_return)
         .ok_or(VaultError::ArithmeticOverflow)?;
     vault.total_shares = vault.total_shares.checked_sub(shares)
@@ -108,7 +104,6 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
 
     vault.current_nav = vault.calculate_nav()?;
 
-    // Update user position
     user_position.shares = user_position.shares.checked_sub(shares)
         .ok_or(VaultError::ArithmeticOverflow)?;
 

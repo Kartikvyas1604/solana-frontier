@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, MintTo};
+use anchor_spl::associated_token::AssociatedToken;
 
 use crate::state::{Vault, UserPosition};
 use crate::events::DepositMade;
@@ -54,7 +55,7 @@ pub struct Deposit<'info> {
     pub user_share_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
@@ -65,10 +66,8 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     let user_position = &mut ctx.accounts.user_position;
     let clock = Clock::get()?;
 
-    // Calculate shares to mint
     let shares_to_mint = vault.shares_for_amount(amount)?;
 
-    // Transfer USDC from user to vault
     let transfer_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
@@ -79,7 +78,6 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     );
     token::transfer(transfer_ctx, amount)?;
 
-    // Mint shares to user
     let vault_seeds = &[b"vault".as_ref(), &[vault.bump]];
     let signer_seeds = &[&vault_seeds[..]];
 
@@ -94,7 +92,6 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     );
     token::mint_to(mint_ctx, shares_to_mint)?;
 
-    // Update vault state
     vault.total_assets = vault.total_assets.checked_add(amount)
         .ok_or(VaultError::ArithmeticOverflow)?;
     vault.total_shares = vault.total_shares.checked_add(shares_to_mint)
@@ -106,7 +103,6 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     }
     vault.current_nav = new_nav;
 
-    // Initialize or update user position
     if user_position.owner == Pubkey::default() {
         user_position.owner = ctx.accounts.user.key();
         user_position.vault = vault.key();

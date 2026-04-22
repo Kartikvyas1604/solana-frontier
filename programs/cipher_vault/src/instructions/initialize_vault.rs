@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, MintTo};
+use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
 
 use crate::state::Vault;
 use crate::events::NAVUpdated;
@@ -40,11 +41,11 @@ pub struct InitializeVault<'info> {
     )]
     pub share_mint: Account<'info, Mint>,
 
-    /// CHECK: Operator public keys - validated in instruction
+    /// CHECK: Operator public keys
     pub operator_1: UncheckedAccount<'info>,
-    /// CHECK: Operator public keys - validated in instruction
+    /// CHECK: Operator public keys
     pub operator_2: UncheckedAccount<'info>,
-    /// CHECK: Operator public keys - validated in instruction
+    /// CHECK: Operator public keys
     pub operator_3: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -66,7 +67,7 @@ pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
     vault.last_execution_ts = clock.unix_timestamp;
     vault.active_hedge = false;
     vault.hedge_position_size = 0;
-    vault.peak_nav = 1_000_000; // 1 USDC
+    vault.peak_nav = 1_000_000;
     vault.current_nav = 1_000_000;
     vault.operator_1 = ctx.accounts.operator_1.key();
     vault.operator_2 = ctx.accounts.operator_2.key();

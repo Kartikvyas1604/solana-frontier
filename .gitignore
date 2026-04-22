@@ -1,8 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,36 +8,84 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Testing
+coverage/
+.nyc_output/
+*.lcov
 
-# next.js
-/.next/
-/out/
+# Next.js
+.next/
+out/
+build/
+dist/
 
-# production
-/build
+# Production
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
-.DS_Store
-*.pem
+# Environment variables
+.env
+.env*.local
+.env.development
+.env.production
+!.env.example
 
-# debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
 
-# vercel
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+.fleet/
+
+# Vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# solana
+# Solana & Anchor
 test-ledger/
 .anchor/
+programs/**/target/
+programs/**/Cargo.lock
+.keys/
+*.so
+*.keypair
+
+# Rust
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Certificates & Keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

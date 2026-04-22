@@ -16,7 +16,7 @@ pub struct SubmitProof<'info> {
 }
 
 pub fn handler(
-    ctx: Context<SubmitProof>,
+    _ctx: Context<SubmitProof>,
     proof_hash: [u8; 32],
     arweave_tx_id: String,
 ) -> Result<()> {
